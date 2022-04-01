@@ -8,6 +8,34 @@
 #define TIMER_A9_BASE 0xFFFEC600
 #define JP1_BASE              0xFF200060
 
+/*
+NOTES
+
+TO DO LIST:
+// Need to implement set time to auto start
+        Set a default time on program start
+
+// Set a control for the auto mode (DONE)
+// Program the auto mode calculation based on outside (DONE - can make more complex)
+	    Have a lookup table for optimal temp range (Didn't do)
+
+
+Pick either option 1 (switch 1) or option 2 (switch 2)
+Switch 1 --> Set the desired temperature
+Switch 2 --> Set the outside temperature (turns on auto mode, no need for desired temperature)
+Switch 3 --> Set time value to auto start (needs to be done)
+
+
+Key 1/2 --> Used to increment and decrement temp for desired/outside when not using GIO
+Key 3 --> (not working) Reset the timer Press down to see the current time (or diff in time)
+
+
+*/
+
+
+
+
+
 //Define LED base
 //volatile int* const led = (int *) LED_BASE;
 
@@ -34,10 +62,15 @@ char hex_code[16] = {0x3F,0x06,0x5B,0x4F,0x66,0x6D,0x7D,0x07,0x7F,0x67};
 int outsideTemp = 0;
 int insideTemp = 0;
 int desiredTemp = 0;
-int autoFlag = 0;
+int optimalTemp = 0;
 int reachedFlag = 0;
 int listen = 0;
 
+
+//Flags
+int insideFlag = 0;
+int outsideFlag = 0;
+int autoFlag = 0;
 
 //Timer structure
 typedef struct _a9_timer
@@ -114,11 +147,14 @@ int ReadKeys(void){
     return *(key_ptr);
 }
 
-void DisplayTempHex(int one,int two)
+void DisplayTempHex(int one)
 {
+
+    int firstval = one % 10;
+    int secondval = (one/10)%10;
  
     //Set the value of the LED pointer to the current hexcode based on current switch
-    *(led) = hex_code[one] + (hex_code[two] << 8);
+    *(led) = hex_code[firstval] + (hex_code[secondval] << 8);
 	//*(led) = (hex_code[s] << 16) + (hex_code[ts] << 24);
 	//*(led2) = hex_code[m] + (hex_code[tm] << 8);
     
@@ -135,18 +171,161 @@ void DisplayTimeHex(int hr,int m1,int m2)
 }
 
 
+void GetADC(int value){
+    int potdata =0;
 
+    if(value>>15){
+                //Bit mask for the first 15bits
+                potdata = value & 0xFFF;
+                if(potdata == 0){
+                    port_A->data = 0b0;
+                    if(insideFlag == 1)
+                    {
+                        desiredTemp=16;
+                    }
+                    else if(outsideFlag == 1){
+                        outsideTemp=-5;
+                    }
+					    
+					
+                }
+                if(potdata < 410){
+                    port_A->data = 0b1;
+					
+                    if(insideFlag == 1)
+                    {
+                        desiredTemp=17;
+                    }
+                    else if(outsideFlag == 1){
+                        outsideTemp=-4;
+                    }
+                }
+                if(potdata > 410*1+1 && potdata <410*2){
+                    port_A->data = 0b11;
+					
+                    if(insideFlag == 1)
+                    {
+                        desiredTemp=18;
+                    }
+                    else if(outsideFlag == 1){
+                        outsideTemp=-3;
+                    }
+                }
+                if(potdata > 410*2+1 && potdata < 410*3){
+                    port_A->data = 0b111;
+					
+                    if(insideFlag == 1)
+                    {
+                        desiredTemp=19;
+                    }
+                    else if(outsideFlag == 1){
+                        outsideTemp=-2;
+                    }
+                }
+                if(potdata > (410*3+1) && potdata < 410*4){
+                    port_A->data = 0b1111;
+					
+                     if(insideFlag == 1)
+                    {
+                        desiredTemp=20;
+                    }
+                    else if(outsideFlag == 1){
+                        outsideTemp=-1;
+                    }
+                }
+                if(potdata > 410*4+1 && potdata < 410*5){
+                    port_A->data = 0b11111;
+					
+                     if(insideFlag == 1)
+                    {
+                        desiredTemp=21;
+                    }
+                    else if(outsideFlag == 1){
+                        outsideTemp=0;
+                    }
+                }
+                if(potdata > 410*5+1 && potdata < 410*6){
+                    port_A->data = 0b111111;
+					
+                     if(insideFlag == 1)
+                    {
+                        desiredTemp=22;
+                    }
+                    else if(outsideFlag == 1){
+                        outsideTemp=28;
+                    }
+                }
+                if(potdata > 410*6+1 && potdata < 410*7){
+                    port_A->data = 0b1111111;
+					
+                    if(insideFlag == 1)
+                    {
+                        desiredTemp=23;
+                    }
+                    else if(outsideFlag == 1){
+                        outsideTemp=29;
+                    }
+                }
+                if(potdata > 410*7+1 && potdata < 410*8){
+                    port_A->data = 0b11111111;
+					
+                    if(insideFlag == 1)
+                    {
+                        desiredTemp=24;
+                    }
+                    else if(outsideFlag == 1){
+                        outsideTemp=30;
+                    }
+                }
+                if(potdata > 410*8+1 && potdata < 410*9){
+                    port_A->data = 0b111111111;
+					
+                    if(insideFlag == 1)
+                    {
+                        desiredTemp=25;
+                    }
+                    else if(outsideFlag == 1){
+                        outsideTemp=31;
+                    }
+                }
+                if(potdata > 410*9+1 && potdata < 410*10){
+                    port_A->data = 0b1111111111;
+					
+
+                    if(insideFlag == 1)
+                    {
+                        desiredTemp=26;
+                    }
+                    else if(outsideFlag == 1){
+                        outsideTemp=32;
+                    }
+                }
+            }
+            
+            //Display either outside or inside depending
+            if(insideFlag == 1)
+            {
+                DisplayTempHex(desiredTemp);
+                insideFlag = 0;
+            }
+            else if(outsideFlag == 1){
+                DisplayTempHex(outsideTemp);
+                outsideFlag = 0;
+            }
+
+            
+}
 
 
 void main(){
     //ADC stuff
     int ADCdata = 0;
-    int potdata =0;
+    
     port_A->control = 0xCFF;
     ADC_ptr->ch1 = 1;
 
     //Interval for 3 seconds
-    int interval = 600000000;
+    int interval = 200000000;
     int started = 0;
     //int time = 0;
  
@@ -161,88 +340,75 @@ void main(){
     int current_button2 = 0;
     int previous_button2 = 0;
 
+    int current_button3 = 0;
+    int previous_button3 = 0;
+
     while(1){
 		
 		current_button = ReadKeys();
+		current_button2 = ReadKeys();
+		current_button3 = ReadKeys();
         //Starting mode
 		if(ReadSwitches() == 1) //Channel 1
 		{
-            /*if((current_button != previous_button) && current_button == 1){
+            if((current_button != previous_button) && current_button == 1){
                 desiredTemp += 1;
-                int firstval = desiredTemp % 10;
-                int secondval = (desiredTemp/10)%10;
-                DisplayTempHex(firstval,secondval);
+                DisplayTempHex(desiredTemp);
             }
             else if((current_button2 != previous_button2) && current_button2 == 1){
                 desiredTemp -= 1;
-                int firstval = desiredTemp % 10;
-                int secondval = (desiredTemp/10)%10;
-                DisplayTempHex(firstval,secondval);
-            }*/
-
-            ADCdata = ADC_ptr->ch0;
-            if(ADCdata>>15){
-                
-                potdata = ADCdata & 0xFFF;
-                if(potdata == 0){
-                    port_A->data = 0b0;
-					desiredTemp=16;
-					
-                }
-                if(potdata < 410){
-                    port_A->data = 0b1;
-					desiredTemp=17;
-                }
-                if(potdata > 410*1+1 && potdata <410*2){
-                    port_A->data = 0b11;
-					desiredTemp=18;
-                }
-                if(potdata > 410*2+1 && potdata < 410*3){
-                    port_A->data = 0b111;
-					desiredTemp=19;
-                }
-                if(potdata > (410*3+1) && potdata < 410*4){
-                    port_A->data = 0b1111;
-					desiredTemp=20;
-                }
-                if(potdata > 410*4+1 && potdata < 410*5){
-                    port_A->data = 0b11111;
-					desiredTemp=21;
-                }
-                if(potdata > 410*5+1 && potdata < 410*6){
-                    port_A->data = 0b111111;
-					desiredTemp=22;
-                }
-                if(potdata > 410*6+1 && potdata < 410*7){
-                    port_A->data = 0b1111111;
-					desiredTemp=23;
-                }
-                if(potdata > 410*7+1 && potdata < 410*8){
-                    port_A->data = 0b11111111;
-					desiredTemp=24;
-                }
-                if(potdata > 410*8+1 && potdata < 410*9){
-                    port_A->data = 0b111111111;
-					desiredTemp=25;
-                }
-                if(potdata > 410*9+1 && potdata < 410*10){
-                    port_A->data = 0b1111111111;
-					desiredTemp=26;
-                }
+                DisplayTempHex(desiredTemp);
             }
-            int firstval = desiredTemp % 10;
-            int secondval = (desiredTemp/10)%10;
-            DisplayTempHex(firstval,secondval);
 
+            //Set inside flag to 1
+            insideFlag = 1;
+			//Uncomment when using on actual board, disabled adc for sim
+            //ADCdata = ADC_ptr->ch0;
+            //GetADC(ADCdata);
+            
+
+        }
+        else if(ReadSwitches() == 2){
+            //Set outside temperature for auto mode
+            outsideFlag = 1;
+			if((current_button != previous_button) && current_button == 1){
+                outsideTemp += 5;
+                DisplayTempHex(outsideTemp);
+            }
+            else if((current_button2 != previous_button2) && current_button2 == 1){
+                outsideTemp -= 1;
+                DisplayTempHex(outsideTemp);
+            }
+			
+			//Uncomment on actual board
+            //ADCdata = ADC_ptr->ch0;
+            //GetADC(ADCdata);
+
+        }
+        else if(ReadSwitches() == 4){
+            
         }
         else{ //Channel 0
 			
+            //If outside temp has been set at start, then use auto mode
+            if(outsideTemp != 0){
+                autoFlag = 1;
+                
+                //Set optimal temperature (can add more complex logic if needed)
+                if(outsideTemp > 27){
+                    optimalTemp = 19;
+                }
+                else if(outsideTemp <  1){
+                    optimalTemp = 23;
+                }
+            }
+
             //Display current temperature
-            int firstval = insideTemp % 10;
-            int secondval = (insideTemp/10)%10;
-            DisplayTempHex(firstval,secondval);
+            DisplayTempHex(insideTemp);
 			
+            //
 			if(runTmFlag != 1){
+                //Reset inside temp if restarting
 				start_timer();
 				started = 1;
 				runTmFlag = 1;
@@ -254,8 +420,10 @@ void main(){
                 
             }
             
-			if((current_button != previous_button) && current_button == 1){
+            //Press the third key to reset
+			if((current_button3 != previous_button3) && current_button3 == 1){
                runTmFlag = 0;
+               insideTemp = 0;
             }
             
             if(started == 1)
@@ -280,7 +448,11 @@ void main(){
             }
 
 
-            if(insideTemp == desiredTemp){
+            if(autoFlag == 0 && insideTemp == desiredTemp){
+                stop_timer();
+                reachedFlag = 1;
+            }
+            else if(autoFlag == 1 && insideTemp == optimalTemp){
                 stop_timer();
                 reachedFlag = 1;
             }
@@ -288,6 +460,7 @@ void main(){
 
     previous_button = current_button;
     previous_button2 = current_button2;
+    previous_button3 = current_button3;
     }
 
 
