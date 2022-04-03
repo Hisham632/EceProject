@@ -15,6 +15,11 @@ TO DO LIST:
 // Need to implement set time to auto start
         Set a default time on program start
 
+Switch 3 --> Set time value to auto start (needs to be done)
+
+
+
+
 // Set a control for the auto mode (DONE)
 // Program the auto mode calculation based on outside (DONE - can make more complex)
 	    Have a lookup table for optimal temp range (Didn't do)
@@ -23,6 +28,7 @@ TO DO LIST:
 Pick either option 1 (switch 1) or option 2 (switch 2)
 Switch 1 --> Set the desired temperature
 Switch 2 --> Set the outside temperature (turns on auto mode, no need for desired temperature)
+
 Switch 3 --> Set time value to auto start (needs to be done)
 
 
@@ -83,6 +89,17 @@ typedef struct _a9_timer
  
 volatile a9_timer* const timer_1 = (a9_timer*)TIMER_A9_BASE;
 
+//Timer structure 2
+typedef struct _a9_timer2
+{
+    int load;
+    int count;
+    int control;
+    int status; 
+} a9_timer2;
+ 
+volatile a9_timer2* const timer_2 = (a9_timer2*)TIMER_A9_BASE;
+
 
 typedef struct _ADC
 {
@@ -99,7 +116,6 @@ unsigned int control ;
 } GPIO ;
 
 volatile GPIO* const port_A = (GPIO*) JP1_BASE;
-
 
 
 // initializes timer to 'interval'
@@ -124,6 +140,30 @@ void stop_timer() // stops timer
 {
     //Set the control bit to 2
     timer_1->control = 2;
+} 
+
+
+void set_timer2( int interval ){
+ 
+    timer_2->load = interval;
+}
+ 
+ 
+void start_timer2() // starts the timer counting, clears previous timeout flag
+{
+    //Set the status flag in Interrupt Status to 1 
+    timer_2->status = 1; 
+	
+    //3 bc 0 1 1 --> (interrupt, auto, enable)
+    //1<<8 --> shift 8 bits from 1
+    timer_2->control = 3; 
+}
+ 
+ 
+void stop_timer2() // stops timer
+{
+    //Set the control bit to 2
+    timer_2->control = 2;
  
  
 } 
@@ -166,9 +206,33 @@ void DisplayTimeHex(int hr,int m1,int m2)
  
     //Set the value of the LED pointer to the current hexcode based on current switch
     *(led) = hex_code[hr] + (hex_code[m1] << 8) + (hex_code[m2] << 16);
+    
 	//*(led) = (hex_code[s] << 16) + (hex_code[ts] << 24);
     
 }
+
+void timeDisplay(int hours, int minutes)
+{
+	int currentTime = 0;
+	
+	currentTime += numConverter(minutes % 10 );
+	currentTime += numConverter(minutes / 10 ) << 8;
+
+	currentTime += numConverter(hours % 10 ) << 16;
+	currentTime += numConverter(hours / 10 ) << 24;
+
+	*(led) = currentTime;
+}
+
+
+
+int numConverter(int num)
+{
+	int numbers[10] = { 0x3F, 0x6, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x7, 0x7F, 0x6F };
+	return numbers[num];
+}
+
+
 
 
 void GetADC(int value){
@@ -319,20 +383,23 @@ void GetADC(int value){
 
 void main(){
     //ADC stuff
-    int ADCdata = 0;
+    //int ADCdata = 0;
     
     port_A->control = 0xCFF;
     ADC_ptr->ch1 = 1;
 
     //Interval for 3 seconds
     int interval = 200000000;
+    unsigned long long int intervalTimer2=12000000000;
+
     int started = 0;
     //int time = 0;
  
     //Set initial load of timer (1 milli sec --> 200)
     set_timer(interval);
- 	
-    
+    set_timer2(intervalTimer2);
+	start_timer2();// starting 2nd timer, as it runs continuously 
+
 	int runTmFlag = 0;
     int current_button = 0;
     int previous_button = 0;
@@ -342,6 +409,7 @@ void main(){
 
     int current_button3 = 0;
     int previous_button3 = 0;
+    int hours=0, minutes=0;
 
     while(1){
 		
@@ -385,7 +453,67 @@ void main(){
             //GetADC(ADCdata);
 
         }
-        else if(ReadSwitches() == 4){
+        else if(ReadSwitches() == 4)
+        {
+
+
+            if (((*timer_2).status & 1 )== 1)
+            {
+                minutes += 1;
+
+                if (minutes== 60) 
+                {
+                    minutes= 0;
+                    hours+= 1;
+                }
+
+                if (hours== 24)
+                {
+                    hours= 0;
+                }
+                (*timer_2).status= 1;
+
+            }
+/*
+            if((current_button != previous_button) && current_button == 1){
+                
+                minutes += 1;
+
+                if (minutes== 60) 
+                {
+                    minutes= 0;
+                    hours+= 1;
+                }
+
+                if (hours== 24)
+                {
+                    hours= 0;
+                }
+                timeDisplay(hours, minutes);
+            }
+            else if((current_button2 != previous_button2) && current_button2 == 1){
+                 minutes -= 1;
+
+                if (minutes== 0) 
+                {
+                    minutes= 59;
+                    hours-= 1;
+                }
+
+                if (hours== -1)
+                {
+                    hours= 23;
+                }
+                timeDisplay(hours, minutes);
+            }*/
+
+
+
+
+
+
+
+
             
         }
         else{ //Channel 0
@@ -461,6 +589,7 @@ void main(){
     previous_button = current_button;
     previous_button2 = current_button2;
     previous_button3 = current_button3;
+
     }
 
 
