@@ -434,6 +434,12 @@ void main(){
     int current_button2 = 0;
     int previous_button2 = 0;
 
+    int current_button4 = 0;
+    int previous_button4 = 0;
+
+    int current_button5 = 0;
+    int previous_button5 = 0;
+
     int current_button3 = 0;
     int previous_button3 = 0;
     int hours=0, minutes=0, storedHours=0, storedMinutes=0;
@@ -443,50 +449,27 @@ void main(){
 		current_button = ReadKeys();
 		current_button2 = ReadKeys();
 		current_button3 = ReadKeys();
+        current_button4 = ReadKeys();
+        current_button5 = ReadKeys();
         //Starting mode
 		if(ReadSwitches() == 1) //Channel 1
 		{
             if((current_button != previous_button) && current_button == 1){
+                noneFlag = 1;
                 desiredTemp += 1;
                 DisplayTempHex(desiredTemp);
             }
             else if((current_button2 != previous_button2) && current_button2 == 2){
+                noneFlag = 1;
                 desiredTemp -= 1;
                 DisplayTempHex(desiredTemp);
             }
 
-            //Set inside flag to 1
-            insideFlag = 1;
-			//Uncomment when using on actual board, disabled adc for sim
-            //ADCdata = ADC_ptr->ch0;
-            //GetADC(ADCdata);
-            
-
-        }
-        else if(ReadSwitches() == 2){
-            //Set outside temperature for auto mode
-            outsideFlag = 1;
-			if((current_button != previous_button) && current_button == 1){
-                outsideTemp += 5;
-                DisplayTempHex(outsideTemp);
-            }
-            else if((current_button2 != previous_button2) && current_button2 == 2){
-                outsideTemp -= 1;
-                DisplayTempHex(outsideTemp);
-            }
-			
-			//Uncomment on actual board
-            //ADCdata = ADC_ptr->ch0;
-            //GetADC(ADCdata);
-
-        }
-        else if(ReadSwitches() == 4)
-        {
             if(noneFlag!= 1){
                 DisplayTimeHex(10,13);
             }
 
-            if((current_button != previous_button) && current_button == 1){
+            if((current_button4 != previous_button4) && current_button4 == 4){
                 noneFlag = 1;
                 storedMinutes += 5;
                 
@@ -502,7 +485,7 @@ void main(){
                 }
                 DisplayTimeHex(storedHours, storedMinutes);
             }
-            else if((current_button2 != previous_button2) && current_button2 == 2){
+            else if((current_button5 != previous_button5) && current_button5 == 8){
                 noneFlag = 1;
                  storedMinutes -= 5;
 
@@ -518,11 +501,68 @@ void main(){
                 }
                 DisplayTimeHex(storedHours, storedMinutes);
             }
+
+            //Set inside flag to 1
+            insideFlag = 1;
+			//Uncomment when using on actual board, disabled adc for sim
+            //ADCdata = ADC_ptr->ch0;
+            //GetADC(ADCdata);
             
+
         }
-        else if(ReadSwitches() == 8)
-        {
-            
+        else if(ReadSwitches() == 2){
+            //Set outside temperature for auto mode
+            outsideFlag = 1;
+			if((current_button != previous_button) && current_button == 1){
+                noneFlag = 1;
+                outsideTemp += 5;
+                DisplayTempHex(outsideTemp);
+            }
+            else if((current_button2 != previous_button2) && current_button2 == 2){
+                noneFlag = 1;
+                outsideTemp -= 1;
+                DisplayTempHex(outsideTemp);
+            }
+			
+            if(noneFlag!= 1){
+                DisplayTimeHex(10,13);
+            }
+
+            if((current_button4 != previous_button4) && current_button4 == 4){
+                noneFlag = 1;
+                storedMinutes += 5;
+                
+                if (storedMinutes== 60) 
+                {
+                    storedMinutes= 0;
+                    storedHours+= 1;
+                }
+
+                if (hours== 24)
+                {
+                    storedHours= 0;
+                }
+                DisplayTimeHex(storedHours, storedMinutes);
+            }
+            else if((current_button5 != previous_button5) && current_button5 == 8){
+                noneFlag = 1;
+                 storedMinutes -= 5;
+
+                if (storedMinutes== 0) 
+                {
+                    storedMinutes= 59;
+                    storedHours-= 1;
+                }
+
+                if (storedHours== -1)
+                {
+                    storedHours= 23;
+                }
+                DisplayTimeHex(storedHours, storedMinutes);
+            }
+			//Uncomment on actual board
+            //ADCdata = ADC_ptr->ch0;
+            //GetADC(ADCdata);
 
         }
         else{ //Channel 0
@@ -531,37 +571,43 @@ void main(){
                 start_timer2();
             }
 
-            
-            ranTm2Flag=1;
-            DisplayTimeHex(minutes, hours);
-            //Start incrementing timer
-            if (timer_2->status == 1)
+            if(minutes!=storedMinutes || hours!=storedHours)
             {
-                minutes += 5;
-
-                if (minutes== 60) 
+                ranTm2Flag=1;
+                DisplayTimeHex(hours,minutes);
+                //Start incrementing timer
+                if (timer_2->status == 1)
                 {
-                    minutes= 0;
-                    hours+= 1;
-                }
+                    minutes += 5;
 
-                if (hours== 24)
-                {
-                    hours= 0;
-                }
+                    if (minutes== 60) 
+                    {
+                        minutes= 0;
+                        hours+= 1;
+                    }
 
-                //(*timer_2).status= 1;
-                timer_2->status = 1; 
+                    if (hours== 24)
+                    {
+                        hours= 0;
+                    }
+
+                    //(*timer_2).status= 1;
+                    timer_2->status = 1; 
+                }
             }
             
             
 			
 
-            if(minutes==storedMinutes && hours==storedHours)
+            if(minutes==storedMinutes && hours==storedHours && randomFlag==0)
             {
                 randomFlag=1;
                 stop_timer2();
+                runTmFlag=0;
+            }
 
+            if(randomFlag == 1){
+                   
                 //If outside temp has been set at start, then use auto mode
                 if(outsideTemp != 0){
                     autoFlag = 1;
@@ -581,21 +627,17 @@ void main(){
                 //
                 if(runTmFlag != 1){
                     //Reset inside temp if restarting
+                    runTmFlag = 1;
                     start_timer();
                     started = 1;
-                    runTmFlag = 1;
-                }
-                
-                //Start the timer
-                if(reachedFlag != 1)
-                {
                     
                 }
                 
+
                 //Press the third key to reset
                 if((current_button3 != previous_button3) && current_button3 == 1){
-                runTmFlag = 0;
-                insideTemp = 0;
+                    //runTmFlag = 0;
+                    insideTemp = 0;
                 }
                 
                 if(started == 1)
@@ -619,7 +661,7 @@ void main(){
                 
                 }
 
-
+                
                 if(autoFlag == 0 && insideTemp == desiredTemp){
                     stop_timer();
                     reachedFlag = 1;
@@ -628,7 +670,6 @@ void main(){
                     stop_timer();
                     reachedFlag = 1;
                 }
-
             }
 
             
@@ -639,6 +680,8 @@ void main(){
     previous_button = current_button;
     previous_button2 = current_button2;
     previous_button3 = current_button3;
+    previous_button4 = current_button4;
+    previous_button5 = current_button5;
 
     }
 
