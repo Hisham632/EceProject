@@ -201,14 +201,48 @@ void DisplayTempHex(int one)
 }
 
 
-void DisplayTimeHex(int hr,int m1,int m2)
+void DisplayTimeHex(int hr,int mn)
 {
- 
+
+    int hour1=0;
+    int hour2 = 0;
+    int min1 = 0;
+    int min2 = 0;
+
+    if(hr >= 10){
+        hour1 = hr % 10;
+        hour2 = (hr/10)%10;
+
+    }
+    else {
+        hour1 = hr % 10;
+        hour2 = (hr/10)%10;
+    } 
+
+    if(mn >= 10){
+
+        min1 = mn % 10;
+        min2 = (mn/10)%10;
+    }
+    else {
+        min1 = mn % 10;
+        min2 = (mn/10)%10;
+    } 
+
+  
+
     //Set the value of the LED pointer to the current hexcode based on current switch
-    *(led) = hex_code[hr] + (hex_code[m1] << 8) + (hex_code[m2] << 16);
+    *(led) = hex_code[min1] + (hex_code[min2] << 8) + (hex_code[hour1] << 16) + (hex_code[hour2] << 24);
     
 	//*(led) = (hex_code[s] << 16) + (hex_code[ts] << 24);
     
+}
+
+
+int numConverter(int num)
+{
+	int numbers[10] = { 0x3F, 0x6, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x7, 0x7F, 0x6F };
+	return numbers[num];
 }
 
 void timeDisplay(int hours, int minutes)
@@ -223,16 +257,6 @@ void timeDisplay(int hours, int minutes)
 
 	*(led) = currentTime;
 }
-
-
-
-int numConverter(int num)
-{
-	int numbers[10] = { 0x3F, 0x6, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x7, 0x7F, 0x6F };
-	return numbers[num];
-}
-
-
 
 
 void GetADC(int value){
@@ -380,6 +404,7 @@ void GetADC(int value){
             
 }
 
+int noneFlag = 0;
 
 void main(){
     //ADC stuff
@@ -397,10 +422,12 @@ void main(){
  
     //Set initial load of timer (1 milli sec --> 200)
     set_timer(interval);
-    set_timer2(intervalTimer2);
-	start_timer2();// starting 2nd timer, as it runs continuously 
+    set_timer2(interval);
+	//start_timer2();// starting 2nd timer, as it runs continuously 
 
 	int runTmFlag = 0;
+    int ranTm2Flag = 0;
+    int randomFlag = 0;
     int current_button = 0;
     int previous_button = 0;
 
@@ -455,14 +482,17 @@ void main(){
         }
         else if(ReadSwitches() == 4)
         {
+            if(noneFlag!= 1){
+                DisplayTimeHex(10,13);
+            }
 
             if((current_button != previous_button) && current_button == 1){
+                noneFlag = 1;
+                storedMinutes += 5;
                 
-                minutes += 1;
-
-                if (minutes== 60) 
+                if (storedMinutes== 60) 
                 {
-                    minutes= 0;
+                    storedMinutes= 0;
                     storedHours+= 1;
                 }
 
@@ -470,10 +500,11 @@ void main(){
                 {
                     storedHours= 0;
                 }
-                timeDisplay(storedHours, storedMinutes);
+                DisplayTimeHex(storedHours, storedMinutes);
             }
             else if((current_button2 != previous_button2) && current_button2 == 2){
-                 storedMinutes -= 1;
+                noneFlag = 1;
+                 storedMinutes -= 5;
 
                 if (storedMinutes== 0) 
                 {
@@ -485,15 +516,28 @@ void main(){
                 {
                     storedHours= 23;
                 }
-                timeDisplay(storedHours, storedMinutes);
+                DisplayTimeHex(storedHours, storedMinutes);
             }
             
         }
         else if(ReadSwitches() == 8)
         {
-            if (((*timer_2).status & 1 )== 1)
+            
+
+        }
+        else{ //Channel 0
+            
+            if(ranTm2Flag != 1){
+                start_timer2();
+            }
+
+            
+            ranTm2Flag=1;
+            DisplayTimeHex(minutes, hours);
+            //Start incrementing timer
+            if (timer_2->status == 1)
             {
-                minutes += 1;
+                minutes += 5;
 
                 if (minutes== 60) 
                 {
@@ -506,17 +550,19 @@ void main(){
                     hours= 0;
                 }
 
-                (*timer_2).status= 1;
-
-                timeDisplay(hours, minutes);
+                //(*timer_2).status= 1;
+                timer_2->status = 1; 
             }
-
-        }
-        else{ //Channel 0
+            
+            
 			
+
             if(minutes==storedMinutes && hours==storedHours)
             {
-                    //If outside temp has been set at start, then use auto mode
+                randomFlag=1;
+                stop_timer2();
+
+                //If outside temp has been set at start, then use auto mode
                 if(outsideTemp != 0){
                     autoFlag = 1;
                     
