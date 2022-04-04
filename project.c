@@ -409,7 +409,7 @@ void main(){
 
     int current_button3 = 0;
     int previous_button3 = 0;
-    int hours=0, minutes=0;
+    int hours=0, minutes=0, storedHours=0, storedMinutes=0;
 
     while(1){
 		
@@ -423,7 +423,7 @@ void main(){
                 desiredTemp += 1;
                 DisplayTempHex(desiredTemp);
             }
-            else if((current_button2 != previous_button2) && current_button2 == 1){
+            else if((current_button2 != previous_button2) && current_button2 == 2){
                 desiredTemp -= 1;
                 DisplayTempHex(desiredTemp);
             }
@@ -443,7 +443,7 @@ void main(){
                 outsideTemp += 5;
                 DisplayTempHex(outsideTemp);
             }
-            else if((current_button2 != previous_button2) && current_button2 == 1){
+            else if((current_button2 != previous_button2) && current_button2 == 2){
                 outsideTemp -= 1;
                 DisplayTempHex(outsideTemp);
             }
@@ -456,7 +456,41 @@ void main(){
         else if(ReadSwitches() == 4)
         {
 
+            if((current_button != previous_button) && current_button == 1){
+                
+                minutes += 1;
 
+                if (minutes== 60) 
+                {
+                    minutes= 0;
+                    storedHours+= 1;
+                }
+
+                if (hours== 24)
+                {
+                    storedHours= 0;
+                }
+                timeDisplay(storedHours, storedMinutes);
+            }
+            else if((current_button2 != previous_button2) && current_button2 == 2){
+                 storedMinutes -= 1;
+
+                if (storedMinutes== 0) 
+                {
+                    storedMinutes= 59;
+                    storedHours-= 1;
+                }
+
+                if (storedHours== -1)
+                {
+                    storedHours= 23;
+                }
+                timeDisplay(storedHours, storedMinutes);
+            }
+            
+        }
+        else if(ReadSwitches() == 8)
+        {
             if (((*timer_2).status & 1 )== 1)
             {
                 minutes += 1;
@@ -471,126 +505,95 @@ void main(){
                 {
                     hours= 0;
                 }
+
                 (*timer_2).status= 1;
 
-            }
-/*
-            if((current_button != previous_button) && current_button == 1){
-                
-                minutes += 1;
-
-                if (minutes== 60) 
-                {
-                    minutes= 0;
-                    hours+= 1;
-                }
-
-                if (hours== 24)
-                {
-                    hours= 0;
-                }
                 timeDisplay(hours, minutes);
             }
-            else if((current_button2 != previous_button2) && current_button2 == 1){
-                 minutes -= 1;
 
-                if (minutes== 0) 
-                {
-                    minutes= 59;
-                    hours-= 1;
-                }
-
-                if (hours== -1)
-                {
-                    hours= 23;
-                }
-                timeDisplay(hours, minutes);
-            }*/
-
-
-
-
-
-
-
-
-            
         }
         else{ //Channel 0
 			
-            //If outside temp has been set at start, then use auto mode
-            if(outsideTemp != 0){
-                autoFlag = 1;
-                
-                //Set optimal temperature (can add more complex logic if needed)
-                if(outsideTemp > 27){
-                    optimalTemp = 19;
-                }
-                else if(outsideTemp <  1){
-                    optimalTemp = 23;
-                }
-            }
-
-            //Display current temperature
-            DisplayTempHex(insideTemp);
-			
-            //
-			if(runTmFlag != 1){
-                //Reset inside temp if restarting
-				start_timer();
-				started = 1;
-				runTmFlag = 1;
-			}
-			
-            //Start the timer
-            if(reachedFlag != 1)
+            if(minutes==storedMinutes && hours==storedHours)
             {
-                
-            }
-            
-            //Press the third key to reset
-			if((current_button3 != previous_button3) && current_button3 == 1){
-               runTmFlag = 0;
-               insideTemp = 0;
-            }
-            
-            if(started == 1)
-		    {
-			
-                //Get the current count
-                //current_count = timer_1->count;
-                
-                //If status flag is 1, means timer has reached the end 
-                if(timer_1->status == 1)
-                {
-                    //Increment time by 1 every 1ms
-                    insideTemp=insideTemp+1;
+                    //If outside temp has been set at start, then use auto mode
+                if(outsideTemp != 0){
+                    autoFlag = 1;
                     
-                    
-                    
-                    //Clear timeout flag once the timer is done (Set the status flag in Interrupt Status to 1)
-                    timer_1->status = 1; 
-
+                    //Set optimal temperature (can add more complex logic if needed)
+                    if(outsideTemp > 27){
+                        optimalTemp = 19;
+                    }
+                    else if(outsideTemp <  1){
+                        optimalTemp = 23;
+                    }
                 }
+
+                //Display current temperature
+                DisplayTempHex(insideTemp);
+                
+                //
+                if(runTmFlag != 1){
+                    //Reset inside temp if restarting
+                    start_timer();
+                    started = 1;
+                    runTmFlag = 1;
+                }
+                
+                //Start the timer
+                if(reachedFlag != 1)
+                {
+                    
+                }
+                
+                //Press the third key to reset
+                if((current_button3 != previous_button3) && current_button3 == 1){
+                runTmFlag = 0;
+                insideTemp = 0;
+                }
+                
+                if(started == 1)
+                {
+                
+                    //Get the current count
+                    //current_count = timer_1->count;
+                    
+                    //If status flag is 1, means timer has reached the end 
+                    if(timer_1->status == 1)
+                    {
+                        //Increment time by 1 every 1ms
+                        insideTemp=insideTemp+1;
+                        
+                        
+                        
+                        //Clear timeout flag once the timer is done (Set the status flag in Interrupt Status to 1)
+                        timer_1->status = 1; 
+
+                    }
+                
+                }
+
+
+                if(autoFlag == 0 && insideTemp == desiredTemp){
+                    stop_timer();
+                    reachedFlag = 1;
+                }
+                else if(autoFlag == 1 && insideTemp == optimalTemp){
+                    stop_timer();
+                    reachedFlag = 1;
+                }
+
+            }
+
             
-            }
-
-
-            if(autoFlag == 0 && insideTemp == desiredTemp){
-                stop_timer();
-                reachedFlag = 1;
-            }
-            else if(autoFlag == 1 && insideTemp == optimalTemp){
-                stop_timer();
-                reachedFlag = 1;
-            }
 		}
+
+
 
     previous_button = current_button;
     previous_button2 = current_button2;
     previous_button3 = current_button3;
 
     }
-
 
 }
