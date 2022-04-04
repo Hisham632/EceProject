@@ -466,7 +466,7 @@ void main(){
             }
 
             if(noneFlag!= 1){
-                DisplayTimeHex(10,13);
+                DisplayTimeHex(0,0);
             }
 
             if((current_button4 != previous_button4) && current_button4 == 4){
@@ -525,7 +525,7 @@ void main(){
             }
 			
             if(noneFlag!= 1){
-                DisplayTimeHex(10,13);
+                DisplayTimeHex(0,0);
             }
 
             if((current_button4 != previous_button4) && current_button4 == 4){
