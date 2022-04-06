@@ -200,6 +200,19 @@ void DisplayTempHex(int one)
     
 }
 
+void DisplayOutsideTempHex(int one)
+{
+
+    int firstval = one % 10;
+    //int secondval = (one/10)%10;
+ 
+    //Set the value of the LED pointer to the current hexcode based on current switch
+    *(led) = hex_code[firstval] + (0x40 << 8);
+	//*(led) = (hex_code[s] << 16) + (hex_code[ts] << 24);
+	//*(led2) = hex_code[m] + (hex_code[tm] << 8);
+    
+}
+
 
 void DisplayTimeHex(int hr,int mn)
 {
@@ -397,7 +410,7 @@ void GetADC(int value){
                 insideFlag = 0;
             }
             else if(outsideFlag == 1){
-                DisplayTempHex(outsideTemp);
+                DisplayOutsideTempHex(outsideTemp);
                 outsideFlag = 0;
             }
 
@@ -408,7 +421,7 @@ int noneFlag = 0;
 
 void main(){
     //ADC stuff
-    //int ADCdata = 0;
+    int ADCdata = 0;
     
     port_A->control = 0xCFF;
     ADC_ptr->ch1 = 1;
@@ -454,6 +467,7 @@ void main(){
         //Starting mode
 		if(ReadSwitches() == 1) //Channel 1
 		{
+            /*
             if((current_button != previous_button) && current_button == 1){
                 noneFlag = 1;
                 desiredTemp += 1;
@@ -463,7 +477,7 @@ void main(){
                 noneFlag = 1;
                 desiredTemp -= 1;
                 DisplayTempHex(desiredTemp);
-            }
+            }*/
 
             if(noneFlag!= 1){
                 DisplayTimeHex(0,0);
@@ -505,24 +519,42 @@ void main(){
             //Set inside flag to 1
             insideFlag = 1;
 			//Uncomment when using on actual board, disabled adc for sim
-            //ADCdata = ADC_ptr->ch0;
-            //GetADC(ADCdata);
+            //int prevADC = ADCdata;
+            ADCdata = ADC_ptr->ch0;
+
+
+            if(current_button == 1){
+                GetADC(ADCdata);
+            }
+            
             
 
         }
         else if(ReadSwitches() == 2){
             //Set outside temperature for auto mode
             outsideFlag = 1;
-			if((current_button != previous_button) && current_button == 1){
+            
+			/*if((current_button != previous_button) && current_button == 1){
                 noneFlag = 1;
                 outsideTemp += 5;
-                DisplayTempHex(outsideTemp);
+                if(outsideTemp >= 0){
+                    DisplayTempHex(outsideTemp);
+                }
+                else{
+                    DisplayOutsideTempHex(abs(outsideTemp));
+                }
             }
             else if((current_button2 != previous_button2) && current_button2 == 2){
                 noneFlag = 1;
                 outsideTemp -= 1;
-                DisplayTempHex(outsideTemp);
-            }
+                if(outsideTemp >= 0){
+                    DisplayTempHex(outsideTemp);
+                }
+                else{
+                    DisplayOutsideTempHex(abs(outsideTemp));
+                }
+                
+            }*/
 			
             if(noneFlag!= 1){
                 DisplayTimeHex(0,0);
@@ -561,8 +593,10 @@ void main(){
                 DisplayTimeHex(storedHours, storedMinutes);
             }
 			//Uncomment on actual board
-            //ADCdata = ADC_ptr->ch0;
-            //GetADC(ADCdata);
+            ADCdata = ADC_ptr->ch0;
+            if(current_button == 1){
+                GetADC(ADCdata);
+            }
 
         }
         else{ //Channel 0
