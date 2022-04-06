@@ -410,7 +410,13 @@ void GetADC(int value){
                 insideFlag = 0;
             }
             else if(outsideFlag == 1){
-                DisplayOutsideTempHex(outsideTemp);
+                //DisplayOutsideTempHex(outsideTemp);
+                if(outsideTemp >= 0){
+                    DisplayTempHex(outsideTemp);
+                }
+                else{
+                    DisplayOutsideTempHex(abs(outsideTemp));
+                }
                 outsideFlag = 0;
             }
 
