@@ -522,6 +522,7 @@ void main(){
                 DisplayTimeHex(storedHours, storedMinutes);
             }
 
+
             //Set inside flag to 1
             insideFlag = 1;
 			//Uncomment when using on actual board, disabled adc for sim
@@ -605,6 +606,26 @@ void main(){
             }
 
         }
+        else if(ReadSwitches() == 4){
+            //Reset variables for restart
+            ranTm2Flag = 0;
+            runTmFlag = 0;
+            randomFlag = 0;
+            runTmFlag=0;
+            outsideTemp = 0;
+            desiredTemp = 0;
+            insideTemp = 0;
+            autoFlag = 0;
+            reachedFlag = 0;
+			storedHours=0;
+			storedMinutes=0;
+			minutes=0;
+			hours=0;
+			started=0;
+			optimalTemp = 0;
+			insideFlag = 0;
+			outsideFlag = 0;
+        }
         else{ //Channel 0
             
             if(ranTm2Flag != 1){
@@ -673,12 +694,6 @@ void main(){
                     
                 }
                 
-
-                //Press the third key to reset
-                if((current_button3 != previous_button3) && current_button3 == 1){
-                    //runTmFlag = 0;
-                    insideTemp = 0;
-                }
                 
                 if(started == 1)
                 {
